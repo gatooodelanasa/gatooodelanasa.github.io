@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Para Cass 🐾 Una Carta Especial</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Playfair Display + Cormorant Garamond + Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Sacramento&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cozy: {
+              bg: '#141115',
+              surface: '#1E1820',
+              card: '#251D28',
+              cardBorder: '#3A2E3E',
+              cream: '#F6EFE9',
+              vanilla: '#F3E5D8',
+              rose: '#D4A373',
+              caramel: '#C88D58',
+              lavender: '#C0B3D4',
+              darkViolet: '#1F1824',
+              accentGold: '#E4BF78'
+            }
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            serif: ['"Cormorant Garamond"', 'serif'],
+            display: ['"Playfair Display"', 'serif'],
+            cursive: ['"Sacramento"', 'cursive'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #141115;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #3A2E3E;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #D4A373;
+    }
+
+    #ambientCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .glow-gold {
+      filter: drop-shadow(0 0 16px rgba(228, 191, 120, 0.35));
+    }
+    .glow-lavender {
+      filter: drop-shadow(0 0 20px rgba(192, 179, 212, 0.2));
+    }
+    .card-glass {
+      background: rgba(30, 24, 32, 0.82);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(228, 191, 120, 0.12);
+    }
+    .card-glass:hover {
+      border-color: rgba(228, 191, 120, 0.28);
+    }
+
+    @keyframes gentleFloat {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-6px) rotate(0.8deg); }
+    }
+    .float-slow {
+      animation: gentleFloat 6s ease-in-out infinite;
+    }
+
+    @keyframes nuzzleLeft {
+      0%, 100% { transform: translateX(0) rotate(0deg); }
+      35% { transform: translateX(18px) rotate(6deg); }
+      50% { transform: translateX(24px) rotate(8deg); }
+      70% { transform: translateX(20px) rotate(5deg); }
+    }
+    @keyframes nuzzleRight {
+      0%, 100% { transform: translateX(0) scaleX(-1) rotate(0deg); }
+      35% { transform: translateX(-18px) scaleX(-1) rotate(6deg); }
+      50% { transform: translateX(-24px) scaleX(-1) rotate(8deg); }
+      70% { transform: translateX(-20px) scaleX(-1) rotate(5deg); }
+    }
+    .nuzzle-active-l {
+      animation: nuzzleLeft 1.2s ease-in-out infinite;
+    }
+    .nuzzle-active-r {
+      animation: nuzzleRight 1.2s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body class="bg-cozy-bg text-cozy-cream font-sans antialiased overflow-x-hidden selection:bg-cozy-caramel selection:text-white">
+
+  <!-- Ambient Floating Canvas -->
+  <canvas id="ambientCanvas"></canvas>
+
+  <!-- Ambient Music Control -->
+  <div class="fixed top-5 right-5 z-50">
+    <button id="musicToggleBtn" onclick="toggleAudioAtmosphere()" 
+      class="flex items-center gap-2 px-4 py-2 rounded-full card-glass shadow-lg border border-cozy-accentGold/20 hover:border-cozy-accentGold/50 transition-all text-xs font-light text-cozy-cream">
+      <span class="relative flex h-2 w-2">
+        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cozy-accentGold opacity-75 hidden" id="musicPing"></span>
+        <span class="relative inline-flex rounded-full h-2 w-2 bg-zinc-500" id="musicDot"></span>
+      </span>
+      <span id="musicLabel">Música</span>
+      <i data-lucide="music-2" class="w-3.5 h-3.5 text-cozy-accentGold"></i>
+    </button>
+  </div>
+
+  <!-- Header -->
+  <header class="relative min-h-[85vh] flex items-center justify-center px-5 sm:px-8 pt-16 pb-20 overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-b from-cozy-darkViolet/40 via-transparent to-cozy-bg pointer-events-none"></div>
+    <div class="absolute -top-32 -left-20 w-96 h-96 bg-cozy-lavender/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute top-1/2 -right-32 w-96 h-96 bg-cozy-caramel/10 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="relative z-10 max-w-3xl mx-auto text-center flex flex-col items-center">
+      <span class="text-xs uppercase tracking-[0.3em] text-cozy-accentGold/80 mb-4 font-light">Una carta para ti</span>
+
+      <h1 class="text-5xl sm:text-7xl md:text-8xl font-display font-semibold text-cozy-cream tracking-tight mb-6">
+        Para <span class="font-cursive text-7xl sm:text-9xl text-cozy-accentGold glow-gold font-normal">Cass</span>
+      </h1>
+
+      <div class="relative w-72 sm:w-84 md:w-96 rounded-3xl overflow-hidden card-glass p-2.5 glow-lavender shadow-2xl transition-transform duration-700 hover:scale-[1.02] mb-10">
+        <div class="relative rounded-2xl overflow-hidden aspect-[4/3]">
+          <img src="https://images.unsplash.com/photo-1548802673-380ab8ebc7b7?auto=format&fit=crop&w=900&q=80" 
+               alt="Gatito tierno descansando" 
+               class="w-full h-full object-cover transition duration-700 hover:scale-105"
+               onerror="this.src='https://placehold.co/800x600/1E1820/F6EFE9?text=Gatito'"/>
+          <div class="absolute inset-0 bg-gradient-to-t from-cozy-bg/60 via-transparent to-transparent"></div>
+        </div>
+      </div>
+
+      <div class="flex flex-col items-center text-cozy-accentGold/60 animate-bounce">
+        <i data-lucide="chevron-down" class="w-5 h-5"></i>
+      </div>
+    </div>
+  </header>
+
+  <!-- Letter Content -->
+  <main class="relative z-10 max-w-3xl mx-auto px-5 sm:px-8 space-y-16 sm:space-y-24 pb-28">
+
+    <!-- Paragraph 1 -->
+    <article class="card-glass rounded-3xl p-7 sm:p-11 shadow-2xl space-y-8">
+      <div class="space-y-6 text-lg sm:text-xl font-serif text-cozy-cream/95 leading-relaxed font-light">
+        <p>
+          Desde el primer día supe que eras una caja de sorpresas, y cada día lo confirmo.
+        </p>
+        <p>
+          Me sorprendió que dibujas, que escribes poemas, que tocas el teclado y que tienes una voz muy bonita. Me gusta cómo ves el mundo, con tu cariño por Tim Burton y esas películas que se disfrutan con un café, bien tapadita en la cama cuando hace frío.
+        </p>
+      </div>
+
+      <div class="rounded-2xl overflow-hidden border border-cozy-cardBorder shadow-xl aspect-[16/10] relative group">
+        <img src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=1000&q=80" 
+             alt="Gatito arropado con cobija" 
+             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+             onerror="this.src='https://placehold.co/900x550/1E1820/F6EFE9?text=Gatito'"/>
+        <div class="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
+      </div>
+    </article>
+
+    <!-- Paragraph 2 -->
+    <article class="card-glass rounded-3xl p-7 sm:p-11 shadow-2xl space-y-8">
+      <div class="space-y-6 text-lg sm:text-xl font-serif text-cozy-cream/95 leading-relaxed font-light">
+        <p>
+          También me gusta cómo piensas. Tienes una manera de ver las cosas muy distinta a la de tu generación. Buscas algo bonito y sincero, y eso se nota. Quieres trabajar para ayudar en tu casa y para hacerte tus propias cosas, y eso me parece admirable.
+        </p>
+        <p>
+          Eres atenta y recuerdas lo que a uno le gusta. Te fijas en todo: en mis dulces de tamarindo, en mis colores oscuros, en mis cositas.
+        </p>
+      </div>
+
+      <div class="rounded-2xl overflow-hidden border border-cozy-cardBorder shadow-xl aspect-[16/10] relative group">
+        <img src="https://images.unsplash.com/photo-1573865526739-10659fec78a5?auto=format&fit=crop&w=1000&q=80" 
+             alt="Gatito curioso y observador" 
+             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+             onerror="this.src='https://placehold.co/900x550/1E1820/F6EFE9?text=Gatito'"/>
+        <div class="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
+      </div>
+    </article>
+
+    <!-- Paragraph 3 -->
+    <article class="card-glass rounded-3xl p-7 sm:p-11 shadow-2xl space-y-8">
+      <div class="space-y-6 text-lg sm:text-xl font-serif text-cozy-cream/95 leading-relaxed font-light">
+        <p>
+          Y esa luz que dejas en los demás. Cuando alguien cercano la está pasando mal, tú te quedas a su lado. Tu presencia da calma, y no soy el único que lo ve. Eso dice mucho de tu corazón.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="rounded-2xl overflow-hidden border border-cozy-cardBorder h-52 sm:h-60 relative group">
+          <img src="https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=700&q=80" 
+               alt="Gatito tranquilo" 
+               class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+               onerror="this.src='https://placehold.co/600x400/1E1820/F6EFE9?text=Gatito'"/>
+        </div>
+        <div class="rounded-2xl overflow-hidden border border-cozy-cardBorder h-52 sm:h-60 relative group">
+          <img src="https://images.unsplash.com/photo-1518791841217-8f162f1e1131?auto=format&fit=crop&w=700&q=80" 
+               alt="Gatito descansando en calma" 
+               class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+               onerror="this.src='https://placehold.co/600x400/1E1820/F6EFE9?text=Gatito'"/>
+        </div>
+      </div>
+    </article>
+
+    <!-- Paragraph 4 & Nose Boop -->
+    <article class="card-glass rounded-3xl p-7 sm:p-11 shadow-2xl space-y-8">
+      <div class="space-y-6 text-lg sm:text-xl font-serif text-cozy-cream/95 leading-relaxed font-light">
+        <p>
+          Me encanta tu forma de dar cariño: los audios, que me pidas avisarte cuando llego a casa, esos mensajes tan tuyos. Y también que algún día frotemos nariz con nariz, como ya quedamos.
+        </p>
+      </div>
+
+      <div class="bg-gradient-to-b from-cozy-darkViolet/80 to-cozy-bg/90 border border-cozy-cardBorder rounded-2xl p-6 sm:p-8 flex flex-col items-center justify-center">
+        <div class="flex items-center justify-center gap-6 sm:gap-10 my-3 h-24 w-full">
+          <div id="catLeft" class="text-6xl select-none transition-transform duration-300">🐱</div>
+          <div id="nuzzleHeart" class="text-2xl text-pink-400 select-none opacity-0 transition-opacity duration-300">💖</div>
+          <div id="catRight" class="text-6xl select-none transition-transform duration-300 scale-x-[-1]">😸</div>
+        </div>
+
+        <button id="nuzzleBtn" onclick="triggerNuzzleAction()" 
+                class="mt-2 px-6 py-2.5 rounded-full bg-gradient-to-r from-cozy-caramel to-cozy-accentGold text-cozy-bg font-medium text-sm sm:text-base shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-2">
+          <span>Frotemos nariz con nariz</span>
+          <span>🐾</span>
+        </button>
+      </div>
+    </article>
+
+    <!-- Paragraph 5 & Flowers -->
+    <article class="card-glass rounded-3xl p-7 sm:p-11 shadow-2xl space-y-8">
+      <div class="space-y-6 text-lg sm:text-xl font-serif text-cozy-cream/95 leading-relaxed font-light">
+        <p>
+          Dicen que los girasoles buscan la luz. Cuando te dé flores, serán de las que a ti te gustan: tulipanes, girasoles, iris y gerberas. Te las mereces todas.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+        <button onclick="bloomFlower('tulipan')" class="group p-4 rounded-2xl bg-cozy-darkViolet/60 border border-cozy-cardBorder hover:border-cozy-accentGold/40 transition-all flex flex-col items-center">
+          <span class="text-4xl group-hover:scale-110 transition-transform">🌷</span>
+          <span class="font-display text-sm text-cozy-vanilla mt-2 font-medium">Tulipanes</span>
+        </button>
+
+        <button onclick="bloomFlower('girasol')" class="group p-4 rounded-2xl bg-cozy-darkViolet/60 border border-cozy-cardBorder hover:border-cozy-accentGold/40 transition-all flex flex-col items-center">
+          <span class="text-4xl group-hover:scale-110 transition-transform">🌻</span>
+          <span class="font-display text-sm text-cozy-vanilla mt-2 font-medium">Girasoles</span>
+        </button>
+
+        <button onclick="bloomFlower('iris')" class="group p-4 rounded-2xl bg-cozy-darkViolet/60 border border-cozy-cardBorder hover:border-cozy-accentGold/40 transition-all flex flex-col items-center">
+          <span class="text-4xl group-hover:scale-110 transition-transform">🪻</span>
+          <span class="font-display text-sm text-cozy-vanilla mt-2 font-medium">Iris</span>
+        </button>
+
+        <button onclick="bloomFlower('gerbera')" class="group p-4 rounded-2xl bg-cozy-darkViolet/60 border border-cozy-cardBorder hover:border-cozy-accentGold/40 transition-all flex flex-col items-center">
+          <span class="text-4xl group-hover:scale-110 transition-transform">🌼</span>
+          <span class="font-display text-sm text-cozy-vanilla mt-2 font-medium">Gerberas</span>
+        </button>
+      </div>
+    </article>
+
+    <!-- Paragraph 6 & Closing -->
+    <article class="card-glass rounded-3xl p-7 sm:p-12 shadow-2xl space-y-8 border border-cozy-accentGold/30">
+      <div class="space-y-6 text-lg sm:text-xl font-serif text-cozy-cream/95 leading-relaxed font-light">
+        <p>
+          Gracias por abrirme tu confianza en tan poco tiempo. Quiero cuidarla y valorarla.
+        </p>
+        <p>
+          No tengo prisa. Quiero conocerte más, a tu ritmo y con calma, para que cualquier paso que demos sea sincero y firme.
+        </p>
+        <p class="text-xl sm:text-2xl text-cozy-accentGold pt-2 italic">
+          Hoy solo quiero disfrutar de verte, de platicar contigo y de seguir descubriéndote.
+        </p>
+      </div>
+
+      <div class="pt-6 border-t border-cozy-cardBorder flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-cozy-accentGold/40 shadow-lg">
+            <img src="https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=300&q=80" 
+                 alt="Gatito tierno" 
+                 class="w-full h-full object-cover"
+                 onerror="this.src='https://placehold.co/150x150/1E1820/F6EFE9?text=Gatito'"/>
+          </div>
+          <span class="font-cursive text-3xl sm:text-4xl text-cozy-accentGold">Siempre</span>
+        </div>
+
+        <button onclick="sendWarmHeartPulse()" class="p-3 rounded-full card-glass border border-cozy-accentGold/30 hover:border-cozy-accentGold text-cozy-accentGold hover:scale-110 transition-all">
+          <i data-lucide="heart" class="w-5 h-5 fill-cozy-accentGold/20"></i>
+        </button>
+      </div>
+    </article>
+
+  </main>
+
+  <!-- Ambient Footer -->
+  <footer class="relative z-10 py-12 text-center text-xs text-cozy-lavender/50">
+    <div class="flex items-center justify-center gap-3 text-sm">
+      <span>☕</span> <span>🐾</span> <span>🌙</span> <span>💐</span>
+    </div>
+  </footer>
+
+  <script>
+    lucide.createIcons();
+
+    /* Ambient particles */
+    const canvas = document.getElementById('ambientCanvas');
+    const ctx = canvas.getContext('2d');
+    let width = canvas.width = window.innerWidth;
+    let height = canvas.height = window.innerHeight;
+
+    window.addEventListener('resize', () => {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    });
+
+    const particles = [];
+    const particleCount = 38;
+
+    class Particle {
+      constructor() {
+        this.reset();
+      }
+      reset() {
+        this.x = Math.random() * width;
+        this.y = Math.random() * height;
+        this.size = Math.random() * 2 + 0.8;
+        this.speedX = (Math.random() - 0.5) * 0.3;
+        this.speedY = -Math.random() * 0.4 - 0.15;
+        this.alpha = Math.random() * 0.5 + 0.2;
+        this.alphaSpeed = Math.random() * 0.006 + 0.003;
+        this.color = Math.random() > 0.4 ? '228, 191, 120' : '192, 179, 212';
+      }
+      update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+        this.alpha += this.alphaSpeed;
+
+        if (this.alpha > 0.7 || this.alpha < 0.15) {
+          this.alphaSpeed = -this.alphaSpeed;
+        }
+
+        if (this.y < -10 || this.x < -10 || this.x > width + 10) {
+          this.reset();
+          this.y = height + 5;
+        }
+      }
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${this.color}, ${this.alpha})`;
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = `rgba(${this.color}, 0.4)`;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+    }
+
+    for (let i = 0; i < particleCount; i++) {
+      particles.push(new Particle());
+    }
+
+    function animateParticles() {
+      ctx.clearRect(0, 0, width, height);
+      particles.forEach(p => {
+        p.update();
+        p.draw();
+      });
+      requestAnimationFrame(animateParticles);
+    }
+    animateParticles();
+
+    /* Cozy Piano Synthesizer */
+    let audioCtx = null;
+    let isPlaying = false;
+    let melodyTimer = null;
+
+    const chords = [
+      [174.61, 220.00, 261.63, 329.63, 392.00],
+      [220.00, 261.63, 329.63, 392.00, 440.00],
+      [233.08, 293.66, 349.23, 440.00, 523.25],
+      [261.63, 349.23, 392.00, 523.25, 587.33]
+    ];
+    let chordIndex = 0;
+
+    function playSoftPianoNote(freq, delay = 0, duration = 3.5, volume = 0.08) {
+      if (!audioCtx) return;
+      try {
+        const now = audioCtx.currentTime + delay;
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now);
+
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(850, now);
+
+        gainNode.gain.setValueAtTime(0.0001, now);
+        gainNode.gain.exponentialRampToValueAtTime(volume, now + 0.12);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+        osc.connect(filter);
+        filter.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        osc.start(now);
+        osc.stop(now + duration + 0.1);
+      } catch (e) {}
+    }
+
+    function scheduleArpeggio() {
+      if (!isPlaying || !audioCtx) return;
+
+      const chord = chords[chordIndex % chords.length];
+      chordIndex++;
+
+      chord.forEach((freq, idx) => {
+        playSoftPianoNote(freq, idx * 0.45, 3.8, 0.045);
+      });
+
+      if (Math.random() > 0.4) {
+        const sparkleNotes = [523.25, 587.33, 659.25, 783.99];
+        const pick = sparkleNotes[Math.floor(Math.random() * sparkleNotes.length)];
+        playSoftPianoNote(pick, 1.8 + Math.random() * 0.5, 3.2, 0.025);
+      }
+
+      melodyTimer = setTimeout(scheduleArpeggio, 4200);
+    }
+
+    function toggleAudioAtmosphere() {
+      const ping = document.getElementById('musicPing');
+      const dot = document.getElementById('musicDot');
+
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+
+      if (!isPlaying) {
+        isPlaying = true;
+        ping.classList.remove('hidden');
+        dot.classList.remove('bg-zinc-500');
+        dot.classList.add('bg-cozy-accentGold');
+        scheduleArpeggio();
+      } else {
+        isPlaying = false;
+        ping.classList.add('hidden');
+        dot.classList.add('bg-zinc-500');
+        dot.classList.remove('bg-cozy-accentGold');
+        if (melodyTimer) clearTimeout(melodyTimer);
+      }
+    }
+
+    /* Nose rubbing interaction */
+    function triggerNuzzleAction() {
+      const catL = document.getElementById('catLeft');
+      const catR = document.getElementById('catRight');
+      const heart = document.getElementById('nuzzleHeart');
+
+      catL.classList.add('nuzzle-active-l');
+      catR.classList.add('nuzzle-active-r');
+      heart.style.opacity = '1';
+
+      if (audioCtx && audioCtx.state === 'running') {
+        playSoftPianoNote(587.33, 0, 1.2, 0.06);
+        playSoftPianoNote(783.99, 0.2, 1.5, 0.05);
+      }
+
+      confetti({
+        particleCount: 26,
+        spread: 55,
+        origin: { y: 0.65 },
+        colors: ['#E4BF78', '#D4A373', '#F3E5D8', '#FFB7B2']
+      });
+
+      setTimeout(() => {
+        catL.classList.remove('nuzzle-active-l');
+        catR.classList.remove('nuzzle-active-r');
+        heart.style.opacity = '0';
+      }, 2000);
+    }
+
+    /* Blooming flower interaction */
+    const flowerColors = {
+      tulipan: '#FF9EAA',
+      girasol: '#F7D060',
+      iris: '#A78BFA',
+      gerbera: '#FF8400'
+    };
+
+    function bloomFlower(flowerKey) {
+      confetti({
+        particleCount: 24,
+        spread: 55,
+        origin: { y: 0.7 },
+        colors: [flowerColors[flowerKey], '#F3E5D8', '#E4BF78']
+      });
+
+      if (audioCtx && audioCtx.state === 'running') {
+        playSoftPianoNote(440, 0, 1.5, 0.05);
+        playSoftPianoNote(523.25, 0.15, 1.8, 0.04);
+      }
+    }
+
+    /* Heart pulse */
+    function sendWarmHeartPulse() {
+      confetti({
+        particleCount: 45,
+        spread: 75,
+        origin: { y: 0.8 },
+        colors: ['#E4BF78', '#D4A373', '#C0B3D4', '#F6EFE9'],
+        shapes: ['circle']
+      });
+
+      if (audioCtx && audioCtx.state === 'running') {
+        playSoftPianoNote(349.23, 0, 2.0, 0.06);
+        playSoftPianoNote(440.00, 0.2, 2.2, 0.05);
+        playSoftPianoNote(523.25, 0.4, 2.5, 0.04);
+      }
+    }
+  </script>
+</body>
+</html>
